@@ -226,9 +226,9 @@ func (l *Logger) Error(format string, args ...interface{}) {
 // from the user, assistant, system, or tool. Assistant messages may include
 // tool calls; tool messages must reference the tool call they respond to.
 type Message struct {
-	Role       string     `json:"role"`                  // "system", "user", "assistant", or "tool"
-	Content    string     `json:"content"`               // Text content of the message
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`  // Tool invocations (assistant messages only)
+	Role       string     `json:"role"`                   // "system", "user", "assistant", or "tool"
+	Content    string     `json:"content"`                // Text content of the message
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`   // Tool invocations (assistant messages only)
 	ToolCallID string     `json:"tool_call_id,omitempty"` // ID of the tool call this responds to (tool messages only)
 }
 
@@ -236,8 +236,8 @@ type Message struct {
 // The LLM generates a unique ID for each call, specifies the type as "function",
 // and provides the function name and JSON-encoded arguments.
 type ToolCall struct {
-	ID       string        `json:"id"`                // Unique identifier for this tool call
-	Type     string        `json:"type"`              // Always "function" for function calls
+	ID       string        `json:"id"`                 // Unique identifier for this tool call
+	Type     string        `json:"type"`               // Always "function" for function calls
 	Function *FunctionCall `json:"function,omitempty"` // The function to call with its arguments
 }
 
@@ -252,10 +252,10 @@ type FunctionCall struct {
 // LLMResponse is the parsed response from the LLM provider after extracting
 // the relevant fields from the chat completions API response format.
 type LLMResponse struct {
-	Content      string     `json:"content"`               // Text content (may be empty if only tool calls)
-	ToolCalls    []ToolCall `json:"tool_calls,omitempty"`  // Requested tool invocations
-	FinishReason string     `json:"finish_reason"`         // "stop", "tool_calls", "length", etc.
-	Usage        *UsageInfo `json:"usage,omitempty"`       // Token usage statistics
+	Content      string     `json:"content"`              // Text content (may be empty if only tool calls)
+	ToolCalls    []ToolCall `json:"tool_calls,omitempty"` // Requested tool invocations
+	FinishReason string     `json:"finish_reason"`        // "stop", "tool_calls", "length", etc.
+	Usage        *UsageInfo `json:"usage,omitempty"`      // Token usage statistics
 }
 
 // UsageInfo tracks token consumption for a single API call. This is used
@@ -287,16 +287,16 @@ type ToolDefFunction struct {
 // AgentStats tracks cumulative statistics across the agent's lifetime.
 // These are displayed via the /status REPL command.
 type AgentStats struct {
-	TotalRequests    int           // Number of LLM API calls made
-	TotalToolCalls   int           // Number of tool invocations
-	TotalTokensUsed  int           // Cumulative token usage
-	TotalPromptTokens int          // Cumulative prompt tokens
-	TotalCompTokens  int           // Cumulative completion tokens
-	TotalErrors      int           // Number of errors encountered
-	SessionStartTime time.Time     // When the agent was created
-	LastRequestTime  time.Time     // Time of most recent API call
-	LastRequestDur   time.Duration // Duration of most recent API call
-	ToolCallCounts   map[string]int // Per-tool invocation counts
+	TotalRequests     int            // Number of LLM API calls made
+	TotalToolCalls    int            // Number of tool invocations
+	TotalTokensUsed   int            // Cumulative token usage
+	TotalPromptTokens int            // Cumulative prompt tokens
+	TotalCompTokens   int            // Cumulative completion tokens
+	TotalErrors       int            // Number of errors encountered
+	SessionStartTime  time.Time      // When the agent was created
+	LastRequestTime   time.Time      // Time of most recent API call
+	LastRequestDur    time.Duration  // Duration of most recent API call
+	ToolCallCounts    map[string]int // Per-tool invocation counts
 }
 
 // ============================================================================
@@ -2441,9 +2441,9 @@ func (t *SystemInfoTool) Parameters() map[string]interface{} {
 		"type": "object",
 		"properties": map[string]interface{}{
 			"category": map[string]interface{}{
-				"type": "string",
+				"type":        "string",
 				"description": "Category of info: 'all', 'os', 'env', 'runtime' (default: 'all')",
-				"enum": []string{"all", "os", "env", "runtime"},
+				"enum":        []string{"all", "os", "env", "runtime"},
 			},
 		},
 		"required": []string{},
@@ -2523,8 +2523,9 @@ func (t *SystemInfoTool) Execute(ctx context.Context, args map[string]interface{
 // by runtime.GOOS == "linux" checks in each tool action.
 //
 // These constants come from the Linux kernel headers:
-//   /usr/include/linux/i2c.h
-//   /usr/include/linux/i2c-dev.h
+//
+//	/usr/include/linux/i2c.h
+//	/usr/include/linux/i2c-dev.h
 //
 // I2C_SLAVE sets the slave address for subsequent read/write operations.
 // I2C_SMBUS performs SMBus-level operations (quick, byte, word, block).
@@ -2557,12 +2558,13 @@ const (
 // for SMBus transactions via ioctl(fd, I2C_SMBUS, &data).
 //
 // Kernel definition (from include/uapi/linux/i2c-dev.h):
-//   struct i2c_smbus_ioctl_data {
-//       __u8 read_write;
-//       __u8 command;
-//       __u32 size;
-//       union i2c_smbus_data __user *data;
-//   };
+//
+//	struct i2c_smbus_ioctl_data {
+//	    __u8 read_write;
+//	    __u8 command;
+//	    __u32 size;
+//	    union i2c_smbus_data __user *data;
+//	};
 type smbusIoctlData struct {
 	readWrite uint8   // I2C_SMBUS_READ or I2C_SMBUS_WRITE
 	command   uint8   // Register address or 0 for Quick/Byte
