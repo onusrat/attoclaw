@@ -1,17 +1,66 @@
 # AttoClaw
 
-A single-file AI agent in Go with I2C/SPI hardware access. Zero dependencies. Compiles everywhere.
+The smallest AI agent that talks to hardware. One Go file, zero dependencies, direct I2C/SPI access on Linux.
 
-AttoClaw bridges language models and the physical world. It provides a ReAct agent loop that connects to any OpenAI-compatible API, with built-in tools for filesystem operations, shell execution, and direct hardware access via I2C and SPI on Linux.
+## Quick Start
 
-## Features
+```bash
+export ATTOCLAW_API_KEY=sk-...
+./attoclaw -m "what's my system info?"
+```
 
-- **Single file, zero dependencies** — stdlib only, compiles on any platform
-- **Hardware access** — I2C bus scanning, register read/write; SPI transfer, loopback testing (Linux)
-- **ReAct agent loop** — reasoning + acting with configurable iteration limits
-- **Sliding-window context** — bounded memory usage with configurable window size
-- **Safety filters** — blocks destructive commands (rm -rf /, dd, fork bombs, etc.)
-- **REPL + one-shot modes** — interactive or scriptable
+> **Note:** Output is illustrative; actual format depends on the LLM response.
+
+```
+[tool: system_info]
+## OS Information
+OS:         linux
+Arch:       arm64
+Hostname:   rpi4
+NumCPU:     4
+...
+
+The system is running linux/arm64 with 4 CPUs on host "rpi4".
+```
+
+## Hardware Example (Raspberry Pi + TMP102)
+
+On a Raspberry Pi with a TMP102 temperature sensor connected to the I2C bus:
+
+```
+$ ./attoclaw
+AttoClaw v0.1.0 | gpt-4o | linux/arm64
+Hardware: I2C: /dev/i2c-1 | SPI: /dev/spidev0.0
+API: https://api.openai.com/v1 (key: sk-a...XXXX)
+Tools: 9 registered
+
+> scan the I2C bus and read temperature from 0x48
+[tool: i2c]
+I2C bus scan: /dev/i2c-1
+
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:          -- -- -- -- -- -- -- -- -- -- -- -- -- --
+40:  -- -- -- -- -- -- -- -- 48 -- -- -- -- -- -- --
+
+Found device at 0x48. Reading register 0x00 (2 bytes)...
+[tool: i2c]
+Temperature: 0x01 0x94 → 25.25°C
+
+The sensor at 0x48 is a TMP102. Current temperature is 25.25°C.
+```
+
+## Dry Run Mode
+
+Preview hardware writes without touching any device:
+
+```bash
+./attoclaw --dry-run -m "write 0xFF to I2C address 0x48"
+```
+
+```
+[tool: i2c]
+[dry-run] would write 1 byte to bus 1 addr 0x48: ff
+```
 
 ## Install
 
@@ -27,32 +76,20 @@ cd attoclaw
 make build
 ```
 
-## Quick Start
+## Try It
 
 ```bash
-export ATTOCLAW_API_KEY=sk-...
 ./attoclaw                              # interactive REPL
 ./attoclaw -m "list files in /tmp"      # one-shot mode
+./attoclaw -m "what's my system info?"  # quick check
+./attoclaw --dry-run                    # hardware writes describe instead of execute
 ```
 
-## Usage
+## Why This Exists
 
-### REPL Commands
+Debugging I2C sensors means writing throwaway Python scripts, memorizing `i2cdetect` flags, and converting hex in your head. SPI is worse. Every new board means starting from scratch.
 
-| Command | Description |
-|---------|-------------|
-| `/help` | Show help |
-| `/tools` | List available tools |
-| `/status` | Show agent statistics |
-| `/config` | Show current configuration |
-| `/history` | Show recent messages |
-| `/clear` | Clear conversation history |
-| `/quit` | Exit |
-
-### Keys
-
-- `Ctrl+C` — cancel current operation
-- `Ctrl+D` — exit REPL
+AttoClaw lets you talk to hardware in plain English. It knows I2C and SPI at the ioctl level — bus scanning, register reads, full-duplex transfers — and it runs as a single static binary with zero dependencies. Drop it on a Raspberry Pi, a BeagleBone, or a RISC-V board and go.
 
 ## Tools
 
@@ -67,6 +104,25 @@ export ATTOCLAW_API_KEY=sk-...
 | `system_info` | Get OS, arch, hostname, CPU count, env vars |
 | `i2c` | I2C bus detect, device scan, read/write, register ops (Linux) |
 | `spi` | SPI device list, transfer, read, info, loopback test (Linux) |
+
+## Hardware Safety
+
+Hardware writes are **blocked by default**. You must explicitly allowlist which devices the agent can write to:
+
+```json
+{
+  "allowed_i2c_write_addrs": [72, 76],
+  "allowed_spi_devices": ["/dev/spidev0.0"],
+  "hardware_dry_run": false
+}
+```
+
+- **I2C reads** are always allowed (reads don't change device state on well-behaved hardware)
+- **I2C writes** require the target address to be in `allowed_i2c_write_addrs` (0x03-0x77)
+- **SPI transfers** require the device path to be in `allowed_spi_devices`
+- **Dry-run mode** (`--dry-run` flag or `"hardware_dry_run": true`) makes writes return a description of what *would* happen without touching hardware
+
+The exec tool also blocks destructive commands: `rm -rf /`, `dd`, fork bombs, `shutdown`, `mkfs`, and writes to block devices.
 
 ## Configuration
 
@@ -89,7 +145,9 @@ export ATTOCLAW_API_KEY=sk-...
   "model": "gpt-4o",
   "max_iterations": 20,
   "session_window": 50,
-  "exec_timeout_seconds": 60
+  "exec_timeout_seconds": 60,
+  "allowed_i2c_write_addrs": [72, 76],
+  "allowed_spi_devices": ["/dev/spidev0.0"]
 }
 ```
 
@@ -101,18 +159,9 @@ make build-all      # linux/amd64, linux/arm64, linux/riscv64, darwin/arm64
 make install        # copy to ~/.local/bin
 make vet            # run go vet
 make fmt            # run go fmt
+make test           # run tests
 make clean          # remove artifacts
 ```
-
-## Hardware Access
-
-AttoClaw includes direct I2C and SPI tools that work on Linux via ioctl system calls:
-
-**I2C** — detect buses, scan for devices (hybrid SMBus quick write + read byte), read/write raw bytes, register-level operations. Example: `"scan the I2C bus and read temperature from the sensor at 0x48"`
-
-**SPI** — list devices, full-duplex transfer, read-only mode, device info, loopback testing with proper struct alignment. Example: `"do a loopback test on /dev/spidev0.0"`
-
-Hardware tools are compiled on all platforms but runtime-check for Linux before executing.
 
 ## License
 
