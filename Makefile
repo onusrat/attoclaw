@@ -7,7 +7,7 @@ LDFLAGS := -s -w -X main.Version=$(VERSION) -X main.CommitHash=$(COMMIT) -X main
 
 PLATFORMS := linux/amd64 linux/arm64 linux/riscv64 darwin/arm64
 
-.PHONY: build build-all install clean vet fmt help
+.PHONY: build build-all install clean vet fmt test help
 
 build: ## Build for current platform
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY) .
@@ -35,6 +35,9 @@ vet: ## Run go vet
 
 fmt: ## Run go fmt
 	go fmt ./...
+
+test: ## Run tests
+	go test ./...
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \

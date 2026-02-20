@@ -1,13 +1,5 @@
-# Binaries
 attoclaw
 build/
-*.exe
-
-# Environment
+dist/
 .env
-*.json
-!config.example.json
-
-# OS
 .DS_Store
-Thumbs.db
