@@ -85,6 +85,22 @@ make build
 ./attoclaw --dry-run                    # hardware writes describe instead of execute
 ```
 
+## Works with Any LLM
+
+**OpenAI, Ollama, LM Studio, Groq, llama.cpp** — anything that speaks the OpenAI API format. Run it fully offline with a local model on the same board that's reading your sensors.
+
+```bash
+# Cloud (OpenAI, Groq, Together, etc.)
+export ATTOCLAW_API_KEY=sk-...
+./attoclaw -m "scan the I2C bus"
+
+# Local (Ollama — fully offline, no cloud)
+export ATTOCLAW_API_BASE=http://localhost:11434/v1
+export ATTOCLAW_API_KEY=ollama
+export ATTOCLAW_MODEL=llama3
+./attoclaw -m "scan the I2C bus"
+```
+
 ## Why This Exists
 
 Debugging I2C sensors means writing throwaway Python scripts, memorizing `i2cdetect` flags, and converting hex in your head. SPI is worse. Every new board means starting from scratch.
@@ -131,7 +147,7 @@ The exec tool also blocks destructive commands: `rm -rf /`, `dd`, fork bombs, `s
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `ATTOCLAW_API_KEY` | API key (required) | — |
-| `ATTOCLAW_API_BASE` | API endpoint | `https://api.openai.com/v1` |
+| `ATTOCLAW_API_BASE` | API endpoint (any OpenAI-compatible URL) | `https://api.openai.com/v1` |
 | `ATTOCLAW_MODEL` | LLM model | `gpt-4o` |
 | `ATTOCLAW_DEBUG` | Enable debug logging | `false` |
 
